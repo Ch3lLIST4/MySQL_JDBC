@@ -120,7 +120,7 @@ public class FinalMonitorTraceLogMySQL {
         }
     }
     
-    public static String monitorLogTable(Connection conn, String last_exec_time) {
+    public static String monitorLogTable(Connection conn, String last_exec_time/*, int count[]*/) {
         // LAST_EXEC_TIME temp var for retrieving most current exec time 
         String LAST_EXEC_TIME = new String();
         
@@ -165,6 +165,7 @@ public class FinalMonitorTraceLogMySQL {
                 } else {}
                 
                 System.out.println(String.format(output, event_time, user_host, thread_id, server_id, command_type, argument));
+//                count[0]++;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -342,9 +343,11 @@ public class FinalMonitorTraceLogMySQL {
             System.out.println("\nBegin monitoring.\n-----------------------------------------------------\n");
             
             //3. Monitor log table
+//            int count[] = new int[]{0};
             String last_exec_time = getCurrentTime();
             while(true) {
-                last_exec_time = monitorLogTable(conn, last_exec_time);
+                last_exec_time = monitorLogTable(conn, last_exec_time/*, count*/);
+//                System.out.println(count[0]);
                 TimeUnit.SECONDS.sleep(5);
             }
         } catch (Exception e) {
