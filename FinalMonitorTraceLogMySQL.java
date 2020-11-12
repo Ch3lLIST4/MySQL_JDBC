@@ -41,27 +41,26 @@ public class FinalMonitorTraceLogMySQL {
     }
     
     public static Connection getConnection(String ip_address, String port_number, 
-            String databaseName, String username, String password) {
+            String databaseName, String username, String password) throws Exception {
         Connection conn = null;
-        try {
-            //1. Load Driver
+        
+        //1. Load Driver
 //            Class.forName("com.mysql.jdbc.Driver");
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            //2. Create String
-            String url = String.format("jdbc:mysql://%s:%s/%s", ip_address, port_number, databaseName);
-            //3. Create Properties
-            java.util.Properties connProperties = new java.util.Properties();
-            connProperties.put(DATABASE_USER, username);
-            connProperties.put(DATABASE_PASSWORD, password);
-            
-            connProperties.put(MYSQL_AUTO_RECONNECT, "true");
-            //4. Connect Database
-            conn = DriverManager.getConnection(url, connProperties);
-        } catch (Exception e) {
-            e.printStackTrace();
-//            System.out.println("Something is wrong in your connection string!");
-//            System.out.println("Please restart the program and re-enter the components!");
-        }
+        Class.forName("com.mysql.cj.jdbc.Driver");
+        //2. Create String
+        String url = String.format("jdbc:mysql://%s:%s/%s", ip_address, port_number, databaseName);
+        //3. Create Properties
+        java.util.Properties connProperties = new java.util.Properties();
+        connProperties.put(DATABASE_USER, username);
+        connProperties.put(DATABASE_PASSWORD, password);
+
+        connProperties.put(MYSQL_AUTO_RECONNECT, "true");
+
+        connProperties.put(MYSQL_MAX_RECONNECTS, "1");
+        //4. Connect Database
+        conn = DriverManager.getConnection(url, connProperties);
+        
+//        System.out.println(conn);
         return conn;
     }
     
@@ -131,11 +130,10 @@ public class FinalMonitorTraceLogMySQL {
         }
     }
     
-    public static String monitorLogTable(Connection conn, String last_exec_time/*, int count[]*/) {
+    public static String monitorLogTable(Connection conn, String last_exec_time/*, int count[]*/) throws Exception {
         // LAST_EXEC_TIME temp var for retrieving most current exec time 
         String LAST_EXEC_TIME = new String();
         
-        try {
             String sql = String.format("SELECT * FROM mysqL.general_log WHERE event_time > '%s' ", last_exec_time)
                     + "AND NOT argument LIKE 'SELECT * FROM mysqL.general_log WHERE event_time >%';";
             
@@ -178,9 +176,6 @@ public class FinalMonitorTraceLogMySQL {
                 System.out.println(String.format(output, event_time, user_host, thread_id, server_id, command_type, argument));
 //                count[0]++;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         
         if (LAST_EXEC_TIME == null || LAST_EXEC_TIME.isEmpty()){
             LAST_EXEC_TIME = last_exec_time;
@@ -285,7 +280,16 @@ public class FinalMonitorTraceLogMySQL {
             // monitor
             
             //connect to the Database
-            Connection conn = getConnection(ip_address, port_number, databaseName, username, password);
+            Connection conn = null;
+            try {
+                conn = getConnection(ip_address, port_number, databaseName, username, password);
+            } catch (Exception e) {
+                System.out.println("Could not connect to the database. Please re-check url");
+                System.exit(0);
+            }
+            if (conn == null) {
+                System.exit(0);
+            }
             
             System.out.println("");
             
@@ -359,9 +363,25 @@ public class FinalMonitorTraceLogMySQL {
 //            int count[] = new int[]{0};
             String last_exec_time = getCurrentTime();
             while(true) {
-                last_exec_time = monitorLogTable(conn, last_exec_time/*, count*/);
-//                System.out.println(count[0]);
-                TimeUnit.SECONDS.sleep(5);
+                try {
+                    last_exec_time = monitorLogTable(conn, last_exec_time/*, count*/);
+//                    System.out.println("Executed");
+    //                System.out.println(count[0]);
+                    TimeUnit.SECONDS.sleep(5);
+                } catch (Exception e) {
+                    if (conn != null) {
+                        conn.close();
+                    }
+                    System.out.println("Lost connection to DB. Trying to reconnect..");
+                    try {
+                        conn = getConnection(ip_address, port_number, databaseName, username, password);
+                        onGeneralLog(conn);
+                        onLogOutput(conn);
+                    } catch (Exception ignore) {
+//                        System.out.println(ignore);
+                    }
+                    TimeUnit.SECONDS.sleep(2);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
