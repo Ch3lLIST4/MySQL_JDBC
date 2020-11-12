@@ -27,6 +27,11 @@ public class FinalMonitorTraceLogMySQL {
     public static final String ANSI_GREEN = "\u001B[32m";
     public static final String ANSI_YELLOW = "\u001b[33m";
     public static final String ANSI_CYAN = "\u001b[36m";
+
+    public static final String DATABASE_USER = "user";
+    public static final String DATABASE_PASSWORD = "password";
+    public static final String MYSQL_AUTO_RECONNECT = "autoReconnect";
+    public static final String MYSQL_MAX_RECONNECTS = "maxReconnects";
     
     public static String getCurrentTime(){
         // 2020-11-05 15:37:00.884583
@@ -44,8 +49,14 @@ public class FinalMonitorTraceLogMySQL {
             Class.forName("com.mysql.cj.jdbc.Driver");
             //2. Create String
             String url = String.format("jdbc:mysql://%s:%s/%s", ip_address, port_number, databaseName);
-            //3. Connect Database
-            conn = DriverManager.getConnection(url, username, password);
+            //3. Create Properties
+            java.util.Properties connProperties = new java.util.Properties();
+            connProperties.put(DATABASE_USER, username);
+            connProperties.put(DATABASE_PASSWORD, password);
+            
+            connProperties.put(MYSQL_AUTO_RECONNECT, "true");
+            //4. Connect Database
+            conn = DriverManager.getConnection(url, connProperties);
         } catch (Exception e) {
             e.printStackTrace();
 //            System.out.println("Something is wrong in your connection string!");
@@ -300,6 +311,7 @@ public class FinalMonitorTraceLogMySQL {
                         }
                     } else {
                         System.out.println("Turning off. Make sure general_log is ON to use the program");
+                        return;
                     }   break;
                 case "ON":
                     System.out.println("MySQL general_log found ON and ready to be monitored");
@@ -331,6 +343,7 @@ public class FinalMonitorTraceLogMySQL {
                         }
                     } else {
                         System.out.println("Turning off. Make sure log_output is switched to TABLE to use the program");
+                        return;
                     }   break;
                 case "TABLE":
                     System.out.println("MySQL log_output is already TABLE and ready to be monitored");
