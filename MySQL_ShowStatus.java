@@ -63,19 +63,52 @@ public class MySQL_ShowStatus {
         return conn;
     }
     
+    // cal functions
+    public static String cal_Traffic_speed_Bytes_received(String Bytes_received, String Last_Bytes_received) {
+        double Traffic_speed_Bytes_received = (Double.parseDouble(Bytes_received) - Double.parseDouble(Last_Bytes_received)) / TIME_OUT;
+        Traffic_speed_Bytes_received = Math.floor(Traffic_speed_Bytes_received * 100) / 100;
+        String value = String.valueOf(Traffic_speed_Bytes_received);
+        return value;
+    }
+    
+    public static String cal_Traffic_speed_Bytes_sent(String Bytes_sent, String Last_Bytes_sent) {
+        double Traffic_speed_Bytes_sent = (Double.parseDouble(Bytes_sent) - Double.parseDouble(Last_Bytes_sent)) / TIME_OUT;
+        Traffic_speed_Bytes_sent = Math.floor(Traffic_speed_Bytes_sent * 100) / 100;
+        String value = String.valueOf(Traffic_speed_Bytes_sent);
+        return value;
+    }
+    
+    public static String cal_Innodb_data_reads_per_sec(String Innodb_data_read, String Last_Innodb_data_read) {
+        double Innodb_data_reads_per_sec = (Double.parseDouble(Innodb_data_read) - Double.parseDouble(Last_Innodb_data_read)) / TIME_OUT;
+        Innodb_data_reads_per_sec = Math.floor(Innodb_data_reads_per_sec * 100) / 100;
+        String value = String.valueOf(Innodb_data_reads_per_sec);
+        return value;
+    }
+    
+    public static String cal_Innodb_data_writes_per_sec(String Innodb_data_written, String Last_Innodb_data_written) {
+        double Innodb_data_writes_per_sec = (Double.parseDouble(Innodb_data_written) - Double.parseDouble(Last_Innodb_data_written)) / TIME_OUT;
+        Innodb_data_writes_per_sec = Math.floor(Innodb_data_writes_per_sec * 100) / 100;
+        String value = String.valueOf(Innodb_data_writes_per_sec);
+        return value;
+    }
+    
     public static HashMap<String, String> searchShowStatus(Connection conn, HashMap<String, String> NeededValues) {
         HashMap<String, String> NEEDED_VALUES = new HashMap<String, String>();
         ArrayList<String> arr = new ArrayList<String>();
         // Uptime
         arr.add("Uptime");
-        // Threads = Threads_connected - 1
+        // Threads_connected
         arr.add("Threads_connected");
-        // Traffic = total / TIME_OUT
+        // Traffic = total-last_total / TIME_OUT
         arr.add("Bytes_received");
         arr.add("Bytes_sent");
-        // InnoDB Buffer Usage = Innodb_buffer_pool_pages_data / Innodb_buffer_pool_pages_total
+        // InnoDB Buffer Usage = (Innodb_buffer_pool_pages_data / Innodb_buffer_pool_pages_total)*100
         arr.add("Innodb_buffer_pool_pages_data");
         arr.add("Innodb_buffer_pool_pages_total");
+        // InnoDB Data read write speed = total-last_total / TIME_OUT
+        arr.add("Innodb_data_read");
+        arr.add("Innodb_data_written");
+        
         //^%$
         //SHOW GLOBAL STATUS WHERE Variable_name REGEXP '^Threads_connected$|^Bytes_received$|^Bytes_sent$|^Created_tmp_disk_tables$|^Handler_read_first$|^Innodb_buffer_pool_wait_free$|^Key_reads$|^Max_used_connections$|^Open_tables$|^Select_full_join$|^Slow_queries$|^Uptime$';   
         // convert to needed String
@@ -97,6 +130,8 @@ public class MySQL_ShowStatus {
             JSONObject obj = new JSONObject();
             
             int count = 0;
+            double Innodb_buffer_pool_pages_data = 0;
+            double Innodb_buffer_pool_pages_total = 0;
             while (result.next()) {
                 boolean needed = false;
                 
@@ -108,25 +143,38 @@ public class MySQL_ShowStatus {
                 } 
                 else if (variable_name.equals("Threads_connected")) {
                     variable_name = "Connections";
-                    value = String.valueOf(Integer.parseInt(value) - 1);
                     needed = true;
                 }
                 else if (variable_name.equals("Bytes_received")) {
                     variable_name = "Traffic in";
-                    System.out.println("New Value : " + Double.parseDouble(value));
-                    System.out.println("Last Value : " +  Double.parseDouble(NeededValues.get("Bytes_received")));
-                    System.out.println("Traffic Speed : " + (Double.parseDouble(value) - Double.parseDouble(NeededValues.get("Bytes_received"))) / 3);
-                    value = String.valueOf((Double.parseDouble(value) - Double.parseDouble(NeededValues.get("Bytes_received"))) / 3);
                     NEEDED_VALUES.put("Bytes_received", value);
+                    value = cal_Traffic_speed_Bytes_received(value, NeededValues.get("Bytes_received"));
                     needed = true;
                 }
                 else if (variable_name.equals("Bytes_sent")) {
                     variable_name = "Traffic out";
-                    System.out.println("New Value : " + Double.parseDouble(value));
-                    System.out.println("Last Value : " +  Double.parseDouble(NeededValues.get("Bytes_sent")));
-                    System.out.println("Traffic Speed : " + (Double.parseDouble(value) - Double.parseDouble(NeededValues.get("Bytes_sent"))) / 3);
-                    value = String.valueOf((Double.parseDouble(value) - Double.parseDouble(NeededValues.get("Bytes_sent")))/ 3);
                     NEEDED_VALUES.put("Bytes_sent", value);
+                    value = cal_Traffic_speed_Bytes_received(value, NeededValues.get("Bytes_sent"));
+                    needed = true;
+                }
+                
+                else if (variable_name.equals("Innodb_buffer_pool_pages_data")) {
+                    Innodb_buffer_pool_pages_data = Double.parseDouble(value);
+                }
+                else if (variable_name.equals("Innodb_buffer_pool_pages_total")) {
+                    Innodb_buffer_pool_pages_total = Double.parseDouble(value);
+                }
+                
+                else if (variable_name.equals("Innodb_data_read")) {
+                    variable_name = "InnoDB Reads per Second";
+                    NEEDED_VALUES.put("Innodb_data_read", value);
+                    value = cal_Innodb_data_reads_per_sec(value, NeededValues.get("Innodb_data_read"));
+                    needed = true;
+                }
+                else if (variable_name.equals("Innodb_data_written")) {
+                    variable_name = "InnoDB Writes per Second";
+                    NEEDED_VALUES.put("Innodb_data_written", value);
+                    value = cal_Innodb_data_writes_per_sec(value, NeededValues.get("Innodb_data_written"));
                     needed = true;
                 }
                 
@@ -135,8 +183,15 @@ public class MySQL_ShowStatus {
                     count++;
                 }
             }
+            
+            // cal Innodb_buffer_usage
+            double Innodb_buffer_usage_value = (Innodb_buffer_pool_pages_data / Innodb_buffer_pool_pages_total) * 100;
+            Innodb_buffer_usage_value = Math.floor(Innodb_buffer_usage_value * 100) / 100; 
+            String Innodb_buffer_usage = String.valueOf(Innodb_buffer_usage_value);
+            obj.put("InnoDB Buffer Usage", Innodb_buffer_usage);
+            
+            // print json obj
             System.out.println(obj.toString(4));
-            System.out.println(count);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -154,6 +209,8 @@ public class MySQL_ShowStatus {
         HashMap<String, String> Needed_Values = new HashMap<String, String>();
         Needed_Values.put("Bytes_received", "0");
         Needed_Values.put("Bytes_sent", "0");
+        Needed_Values.put("Innodb_data_read", "0");
+        Needed_Values.put("Innodb_data_written", "0");
         try {
             Connection conn = getConnection(ip_address, port_number, databaseName, username, password);
             
