@@ -92,6 +92,20 @@ public class MySQL_ShowStatus {
         return value;
     }
     
+    public static String cal_Key_read_efficiency(String Key_reads, String Key_read_requests) {
+        double Key_read_efficiency = (1 - (Double.parseDouble(Key_reads)/Double.parseDouble(Key_read_requests)))*100;
+        Key_read_efficiency = Math.floor(Key_read_efficiency * 100) / 100;
+        String value = String.valueOf(Key_read_efficiency);
+        return value;
+    }
+    
+    public static String cal_Key_write_efficiency(String Key_writes, String Key_write_requests) {
+        double Key_write_efficiency = (1 - (Double.parseDouble(Key_writes)/Double.parseDouble(Key_write_requests)))*100;
+        Key_write_efficiency = Math.floor(Key_write_efficiency * 100) / 100;
+        String value = String.valueOf(Key_write_efficiency);
+        return value;
+    }
+    
     public static HashMap<String, String> searchShowStatus(Connection conn, HashMap<String, String> NeededValues) {
         HashMap<String, String> NEEDED_VALUES = new HashMap<String, String>();
         ArrayList<String> arr = new ArrayList<String>();
@@ -108,6 +122,12 @@ public class MySQL_ShowStatus {
         // InnoDB Data read write speed = total-last_total / TIME_OUT
         arr.add("Innodb_data_read");
         arr.add("Innodb_data_written");
+        // Key Read Efficiency
+        arr.add("Key_reads");
+        arr.add("Key_read_requests");
+        // Key Write Efficiency
+        arr.add("Key_writes");
+        arr.add("Key_write_requests");
         
         //^%$
         //SHOW GLOBAL STATUS WHERE Variable_name REGEXP '^Threads_connected$|^Bytes_received$|^Bytes_sent$|^Created_tmp_disk_tables$|^Handler_read_first$|^Innodb_buffer_pool_wait_free$|^Key_reads$|^Max_used_connections$|^Open_tables$|^Select_full_join$|^Slow_queries$|^Uptime$';   
@@ -132,6 +152,11 @@ public class MySQL_ShowStatus {
             int count = 0;
             double Innodb_buffer_pool_pages_data = 0;
             double Innodb_buffer_pool_pages_total = 0;
+            double Key_reads = 0;
+            double Key_read_requests = 0;
+            double Key_writes = 0;
+            double Key_write_requests = 0;
+            
             while (result.next()) {
                 boolean needed = false;
                 
@@ -178,6 +203,19 @@ public class MySQL_ShowStatus {
                     needed = true;
                 }
                 
+                else if (variable_name.equals("Key_reads")) {
+                    Key_reads = Double.parseDouble(value);
+                }
+                else if (variable_name.equals("Key_read_requests")) {
+                    Key_read_requests = Double.parseDouble(value);
+                }
+                else if (variable_name.equals("Key_writes")) {
+                    Key_writes = Double.parseDouble(value);
+                }
+                else if (variable_name.equals("Key_write_requests")) {
+                    Key_write_requests = Double.parseDouble(value);
+                }
+                
                 if (needed == true) {
                     obj.put(variable_name, value);
                     count++;
@@ -189,6 +227,12 @@ public class MySQL_ShowStatus {
             Innodb_buffer_usage_value = Math.floor(Innodb_buffer_usage_value * 100) / 100; 
             String Innodb_buffer_usage = String.valueOf(Innodb_buffer_usage_value);
             obj.put("InnoDB Buffer Usage", Innodb_buffer_usage);
+            // cal Key_write_efficiency
+            String Key_write_efficiency = cal_Key_write_efficiency(String.valueOf(Key_writes), String.valueOf(Key_write_requests));
+            obj.put("Key Write Efficiency", Key_write_efficiency);
+            // cal Key_read_efficiency
+            String Key_read_efficiency = cal_Key_read_efficiency(String.valueOf(Key_reads), String.valueOf(Key_read_requests));
+            obj.put("Key Read Efficiency", Key_read_efficiency);
             
             // print json obj
             System.out.println(obj.toString(4));
@@ -207,10 +251,16 @@ public class MySQL_ShowStatus {
         String password = "123456";
         
         HashMap<String, String> Needed_Values = new HashMap<String, String>();
+        
         Needed_Values.put("Bytes_received", "0");
         Needed_Values.put("Bytes_sent", "0");
         Needed_Values.put("Innodb_data_read", "0");
         Needed_Values.put("Innodb_data_written", "0");
+        Needed_Values.put("Key_reads", "0");
+        Needed_Values.put("Key_read_requests", "0");
+        Needed_Values.put("Key_writes", "0");
+        Needed_Values.put("Key_write_requests", "0");
+        
         try {
             Connection conn = getConnection(ip_address, port_number, databaseName, username, password);
             
