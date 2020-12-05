@@ -20,7 +20,8 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
-
+import java.time.Instant;
+import java.time.ZoneId;
 
 /**
  *
@@ -152,51 +153,106 @@ public class MySQL_API_testing {
     }
 
     
+    public static boolean is_Valid_Double(String numberString) {
+        try
+        {
+          Double.parseDouble(numberString);
+          return true;
+        }
+        catch(NumberFormatException e)
+        {
+          return false;
+        }
+    }
+    
+    
     // cal functions
     public static String cal_Traffic_speed_Bytes_received(String Bytes_received, String Last_Bytes_received) {
-        double Traffic_speed_Bytes_received = (Double.parseDouble(Bytes_received) - Double.parseDouble(Last_Bytes_received)) / TIME_OUT;
-        Traffic_speed_Bytes_received = Math.floor(Traffic_speed_Bytes_received * 100) / 100;
-        String value = String.valueOf(Traffic_speed_Bytes_received);
+        String value = "0";
+        try {
+            double Traffic_speed_Bytes_received = (Double.parseDouble(Bytes_received) - Double.parseDouble(Last_Bytes_received)) / TIME_OUT;
+            Traffic_speed_Bytes_received = Math.floor(Traffic_speed_Bytes_received * 100) / 100;
+            value = String.valueOf(Traffic_speed_Bytes_received);
+            if((!is_Valid_Double(value)) || value.equals("NaN")){
+                value = "0";
+            }
+        } catch (Exception e) {
+        }
         return value;
     }
 
     
     public static String cal_Traffic_speed_Bytes_sent(String Bytes_sent, String Last_Bytes_sent) {
-        double Traffic_speed_Bytes_sent = (Double.parseDouble(Bytes_sent) - Double.parseDouble(Last_Bytes_sent)) / TIME_OUT;
-        Traffic_speed_Bytes_sent = Math.floor(Traffic_speed_Bytes_sent * 100) / 100;
-        String value = String.valueOf(Traffic_speed_Bytes_sent);
+        String value = "0";
+        try {
+            double Traffic_speed_Bytes_sent = (Double.parseDouble(Bytes_sent) - Double.parseDouble(Last_Bytes_sent)) / TIME_OUT;
+            Traffic_speed_Bytes_sent = Math.floor(Traffic_speed_Bytes_sent * 100) / 100;
+            value = String.valueOf(Traffic_speed_Bytes_sent);
+            if((!is_Valid_Double(value)) || value.equals("NaN")){
+                value = "0";
+            }
+        } catch (Exception e) {
+        }
         return value;
     }
 
     
     public static String cal_Innodb_data_reads_per_sec(String Innodb_data_read, String Last_Innodb_data_read) {
-        double Innodb_data_reads_per_sec = (Double.parseDouble(Innodb_data_read) - Double.parseDouble(Last_Innodb_data_read)) / TIME_OUT;
-        Innodb_data_reads_per_sec = Math.floor(Innodb_data_reads_per_sec * 100) / 100;
-        String value = String.valueOf(Innodb_data_reads_per_sec);
+        String value = "0";
+        try {
+            double Innodb_data_reads_per_sec = (Double.parseDouble(Innodb_data_read) - Double.parseDouble(Last_Innodb_data_read)) / TIME_OUT;
+            Innodb_data_reads_per_sec = Math.floor(Innodb_data_reads_per_sec * 100) / 100;
+            value = String.valueOf(Innodb_data_reads_per_sec);
+            if((!is_Valid_Double(value)) || value.equals("NaN")){
+                value = "0";
+            }
+        } catch (Exception e) {
+        }
         return value;
     }
 
     
     public static String cal_Innodb_data_writes_per_sec(String Innodb_data_written, String Last_Innodb_data_written) {
-        double Innodb_data_writes_per_sec = (Double.parseDouble(Innodb_data_written) - Double.parseDouble(Last_Innodb_data_written)) / TIME_OUT;
-        Innodb_data_writes_per_sec = Math.floor(Innodb_data_writes_per_sec * 100) / 100;
-        String value = String.valueOf(Innodb_data_writes_per_sec);
+        String value = "0";
+        try {
+            double Innodb_data_writes_per_sec = (Double.parseDouble(Innodb_data_written) - Double.parseDouble(Last_Innodb_data_written)) / TIME_OUT;
+            Innodb_data_writes_per_sec = Math.floor(Innodb_data_writes_per_sec * 100) / 100;
+            value = String.valueOf(Innodb_data_writes_per_sec);
+            if((!is_Valid_Double(value)) || value.equals("NaN")){
+                value = "0";
+            }
+        } catch (Exception e) {
+        }
         return value;
     }
     
     
     public static String cal_Key_read_efficiency(String Key_reads, String Key_read_requests) {
-        double Key_read_efficiency = (1 - (Double.parseDouble(Key_reads)/Double.parseDouble(Key_read_requests)))*100;
-        Key_read_efficiency = Math.floor(Key_read_efficiency * 100) / 100;
-        String value = String.valueOf(Key_read_efficiency);
+        String value = "0";
+        try {
+            double Key_read_efficiency = (1 - (Double.parseDouble(Key_reads)/Double.parseDouble(Key_read_requests)))*100;
+            Key_read_efficiency = Math.floor(Key_read_efficiency * 100) / 100;
+            value = String.valueOf(Key_read_efficiency);
+            if((!is_Valid_Double(value)) || value.equals("NaN")){
+                value = "0";
+            }
+        } catch (Exception e) {
+        }
         return value;
     }
     
     
     public static String cal_Key_write_efficiency(String Key_writes, String Key_write_requests) {
-        double Key_write_efficiency = (1 - (Double.parseDouble(Key_writes)/Double.parseDouble(Key_write_requests)))*100;
-        Key_write_efficiency = Math.floor(Key_write_efficiency * 100) / 100;
-        String value = String.valueOf(Key_write_efficiency);
+        String value = "0";
+        try {
+            double Key_write_efficiency = (1 - (Double.parseDouble(Key_writes)/Double.parseDouble(Key_write_requests)))*100;
+            Key_write_efficiency = Math.floor(Key_write_efficiency * 100) / 100;
+            value = String.valueOf(Key_write_efficiency);
+            if((!is_Valid_Double(value)) || value.equals("NaN")){
+                value = "0";
+            }
+        } catch (Exception e) {
+        }
         return value;
     }
     
@@ -231,12 +287,18 @@ public class MySQL_API_testing {
                 String command_type = result.getString("command_type");
                 String argument = result.getString("argument");
                 
-                // adding key-value pairs to JSON obj_query -> add obj to queries ArrayList for main obj
-                obj_query.put("event_time", event_time);
+                // adding key-value pairs to JSON obj_query -> add obj to queries ArrayList for main obj                
+                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS"); 
+                LocalDateTime event_timeLocalDateTime = LocalDateTime.parse(event_time, dtf);
+                
+                Instant instant = event_timeLocalDateTime.atZone(ZoneId.systemDefault()).toInstant();    
+                long timeInMillis = instant.toEpochMilli(); 
+                
+                obj_query.put("event_time", timeInMillis);
                 obj_query.put("user", user_hostArray[0].trim());
                 obj_query.put("host", user_hostArray[1].trim());
-                obj_query.put("thread_id", thread_id);
-                obj_query.put("server_id", server_id);
+                obj_query.put("thread_id", Integer.parseInt(thread_id));
+                obj_query.put("server_id", Integer.parseInt(server_id));
                 obj_query.put("command_type", command_type);
                 obj_query.put("argument", argument);
                 obj_queriesArray.add(obj_query);
@@ -276,7 +338,7 @@ public class MySQL_API_testing {
     }
     
     
-    public static HashMap<String, String> searchShowStatus(Connection conn, HashMap<String, String> NeededValues) {
+    public static HashMap<String, String> searchShowStatus(Connection conn, HashMap<String, String> NeededValues) throws Exception {
         HashMap<String, String> NEEDED_VALUES = new HashMap<String, String>();
         ArrayList<String> arr = new ArrayList<String>();
         // Uptime
@@ -317,6 +379,7 @@ public class MySQL_API_testing {
             Statement statement = conn.createStatement();
             ResultSet result = statement.executeQuery(sql);
             
+            // initializing vars
             double Innodb_buffer_pool_pages_data = 0;
             double Innodb_buffer_pool_pages_total = 0;
             double Key_reads = 0;
@@ -387,7 +450,12 @@ public class MySQL_API_testing {
                 }
                 
                 if (needed == true) {
-                    obj_status.put(variable_name, value);
+                    if (variable_name.equals("Connections")){
+                        obj_status.put(variable_name, Integer.parseInt(value));
+                    }
+                    else {
+                        obj_status.put(variable_name, Double.parseDouble(value));
+                    }
                 }
             }
             
@@ -395,13 +463,16 @@ public class MySQL_API_testing {
             double Innodb_buffer_usage_value = (Innodb_buffer_pool_pages_data / Innodb_buffer_pool_pages_total) * 100;
             Innodb_buffer_usage_value = Math.floor(Innodb_buffer_usage_value * 100) / 100; 
             String Innodb_buffer_usage = String.valueOf(Innodb_buffer_usage_value);
-            obj_status.put("InnoDB Buffer Usage", Innodb_buffer_usage);
+            obj_status.put("InnoDB Buffer Usage", Double.parseDouble(Innodb_buffer_usage));
             // cal Key_write_efficiency
             String Key_write_efficiency = cal_Key_write_efficiency(String.valueOf(Key_writes), String.valueOf(Key_write_requests));
-            obj_status.put("Key Write Efficiency", Key_write_efficiency);
+            obj_status.put("Key Write Efficiency", Double.parseDouble(Key_write_efficiency));
             // cal Key_read_efficiency
             String Key_read_efficiency = cal_Key_read_efficiency(String.valueOf(Key_reads), String.valueOf(Key_read_requests));
-            obj_status.put("Key Read Efficiency", Key_read_efficiency);
+            obj_status.put("Key Read Efficiency", Double.parseDouble(Key_read_efficiency));
+            
+            //others
+            obj_status.put("Server Status", "Running");
             
             // putting status vars obj to main obj
             obj_main.put("status", obj_status);
