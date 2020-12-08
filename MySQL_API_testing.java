@@ -58,7 +58,7 @@ public class MySQL_API_testing {
 
     public static String SCHEMA = "";
     public static String HOSTNAME = "";
-    public static String PATH = ""
+    public static String PATH = "";
 
     public static String API_URL = SCHEMA + "://" + HOSTNAME + "/" + PATH;
             
