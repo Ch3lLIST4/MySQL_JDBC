@@ -8,6 +8,11 @@
 package mysql_api_testing;
 
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -22,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
 import java.time.Instant;
 import java.time.ZoneId;
+
 
 /**
  *
@@ -47,8 +53,15 @@ public class MySQL_API_testing {
     
     public static final int TIME_OUT = 5;
     public static final int RECONNECTION_TIME_OUT = 2;
-    public static JSONObject obj_main = new JSONObject();
     
+    public static JSONObject obj_main = new JSONObject();
+
+    public static String SCHEMA = "";
+    public static String hostname = "";
+    public static String path = ""
+
+    public static String API_URL = SCHEMA + "://" + hostname + "/" + path;
+            
     
     public static String getCurrentTime(){
         // 2020-11-05 15:37:00.884583
@@ -513,7 +526,7 @@ public class MySQL_API_testing {
         String port_number = "3306";
         String databaseName = "sampledb";
         String username = "root";
-        String password = "123456";
+        String password = "KawaiiNeko1@#";
         
         try {
             Scanner sc = new Scanner(System.in);
@@ -693,7 +706,30 @@ public class MySQL_API_testing {
                     System.out.println("");
                     
                     //3.4 send mock data
+                    URL url = new URL (API_URL);
+                    HttpURLConnection con = (HttpURLConnection)url.openConnection();
+                    con.setRequestMethod("POST");
+                    con.setRequestProperty("Content-Type", "application/json; utf-8");
+                    con.setRequestProperty("Accept", "application/json");
+                    con.setDoOutput(true);
                     
+                    String jsonInputString = obj_main.toString(4);
+                    
+                    // Create the Request Body
+                    try(OutputStream os = con.getOutputStream()) {
+                        byte[] input = jsonInputString.getBytes("utf-8");
+                        os.write(input, 0, input.length);			
+                    }
+                    // Read the Response from Input Stream
+                    try(BufferedReader br = new BufferedReader(
+                        new InputStreamReader(con.getInputStream(), "utf-8"))) {
+                            StringBuilder response = new StringBuilder();
+                            String responseLine = null;
+                            while ((responseLine = br.readLine()) != null) {
+                                response.append(responseLine.trim());
+                            }
+                        System.out.println(response.toString());
+                    }   
                     
                     TimeUnit.SECONDS.sleep(TIME_OUT);
                 } catch (Exception e) {
