@@ -57,10 +57,10 @@ public class MySQL_API_testing {
     public static JSONObject obj_main = new JSONObject();
 
     public static String SCHEMA = "";
-    public static String hostname = "";
-    public static String path = ""
+    public static String HOSTNAME = "";
+    public static String PATH = ""
 
-    public static String API_URL = SCHEMA + "://" + hostname + "/" + path;
+    public static String API_URL = SCHEMA + "://" + HOSTNAME + "/" + PATH;
             
     
     public static String getCurrentTime(){
