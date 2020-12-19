@@ -526,7 +526,7 @@ public class MySQL_API_testing {
         String port_number = "3306";
         String databaseName = "sampledb";
         String username = "root";
-        String password = "KawaiiNeko1@#";
+        String password = "123456";
         
         try {
             Scanner sc = new Scanner(System.in);
