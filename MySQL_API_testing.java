@@ -756,6 +756,7 @@ public class MySQL_API_testing {
                     } else {
                         System.out.println(e);
                     }
+                    TimeUnit.SECONDS.sleep(RECONNECTION_TIME_OUT);
                 }
             }
         } catch (Exception e) {
