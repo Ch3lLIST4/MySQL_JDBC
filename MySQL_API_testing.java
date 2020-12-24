@@ -754,7 +754,7 @@ public class MySQL_API_testing {
                     if (response.toString().equals("")){
                         System.out.println("Lost connection to Mock Server. Saving queries as log files for later transfer..");
                     } else {
-                        System.out.println();
+                        System.out.println(e);
                     }
                 }
             }
