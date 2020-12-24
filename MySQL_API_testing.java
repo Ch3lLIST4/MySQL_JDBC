@@ -9,7 +9,6 @@ package mysql_api_testing;
 
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -524,20 +523,6 @@ public class MySQL_API_testing {
     }
     
     
-    public static boolean checkFileExisted(String log_path, String file_name) {
-        boolean already_existed = false;
-        try {
-            String file_path = log_path + file_name + ".txt";
-            
-            File f = new File(file_path);
-            already_existed = f.exists();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return already_existed;
-    }
-    
-    
     public static void main(String[] args) {
         // TODO code application logic here
         String ip_address = "localhost";
@@ -728,10 +713,6 @@ public class MySQL_API_testing {
                     
                     //3.4 send mock data
                     URL url = new URL (API_URL);
-                    try {
-                        
-                    } catch (Exception e) {
-                    }
                     HttpURLConnection con = (HttpURLConnection)url.openConnection();
                     con.setRequestMethod("POST");
                     con.setRequestProperty("Content-Type", "application/json; utf-8");
@@ -773,7 +754,7 @@ public class MySQL_API_testing {
                     if (response.toString().equals("")){
                         System.out.println("Lost connection to Mock Server. Saving queries as log files for later transfer..");
                     } else {
-                        System.out.println(e);
+                        System.out.println();
                     }
                 }
             }
