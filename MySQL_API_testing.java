@@ -9,6 +9,7 @@ package mysql_api_testing;
 
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -16,6 +17,7 @@ import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -55,11 +57,13 @@ public class MySQL_API_testing {
     public static final int RECONNECTION_TIME_OUT = 2;
     
     public static JSONObject obj_main = new JSONObject();
-
-    public static String SCHEMA = "";
-    public static String HOSTNAME = "";
-    public static String PATH = "";
-
+    
+//    https://ff855c5b-7d87-4035-a588-d444d913a96d.mock.pstmn.io/data
+    public static String SCHEMA = "https";
+//    public static String HOSTNAME = "ff855c5b-7d87-4035-a588-d444d913a96d.mock.pstmn.io";
+    public static String HOSTNAME = "ff855c5b-7d87-4035-a588-d444d913a96dWRONG.mock.pstmn.io";
+    public static String PATH = "data";
+    
     public static String API_URL = SCHEMA + "://" + HOSTNAME + "/" + PATH;
             
     
@@ -520,6 +524,20 @@ public class MySQL_API_testing {
     }
     
     
+    public static boolean checkFileExisted(String log_path, String file_name) {
+        boolean already_existed = false;
+        try {
+            String file_path = log_path + file_name + ".txt";
+            
+            File f = new File(file_path);
+            already_existed = f.exists();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return already_existed;
+    }
+    
+    
     public static void main(String[] args) {
         // TODO code application logic here
         String ip_address = "localhost";
@@ -678,8 +696,11 @@ public class MySQL_API_testing {
             //3. Monitor log table - server status
 //            int count[] = new int[]{0};
             String last_exec_time = getCurrentTime();
+            StringBuilder response = new StringBuilder();
             while(true) {
                 try {
+                    response = new StringBuilder();
+                    
                     //3.1. monitor Log Queries
                     last_exec_time = monitorLogTable(conn, last_exec_time/*, count*/);
 //                    System.out.println("Executed");
@@ -707,6 +728,10 @@ public class MySQL_API_testing {
                     
                     //3.4 send mock data
                     URL url = new URL (API_URL);
+                    try {
+                        
+                    } catch (Exception e) {
+                    }
                     HttpURLConnection con = (HttpURLConnection)url.openConnection();
                     con.setRequestMethod("POST");
                     con.setRequestProperty("Content-Type", "application/json; utf-8");
@@ -723,16 +748,15 @@ public class MySQL_API_testing {
                     // Read the Response from Input Stream
                     try(BufferedReader br = new BufferedReader(
                         new InputStreamReader(con.getInputStream(), "utf-8"))) {
-                            StringBuilder response = new StringBuilder();
                             String responseLine = null;
                             while ((responseLine = br.readLine()) != null) {
                                 response.append(responseLine.trim());
                             }
                         System.out.println(response.toString());
-                    }   
+                    }
                     
                     TimeUnit.SECONDS.sleep(TIME_OUT);
-                } catch (Exception e) {
+                } catch (SQLException e) {
                     if (conn != null) {
                         conn.close();
                     }
@@ -745,6 +769,12 @@ public class MySQL_API_testing {
 //                        System.out.println(ignore);
                     }
                     TimeUnit.SECONDS.sleep(RECONNECTION_TIME_OUT);
+                } catch (Exception e) {
+                    if (response.toString().equals("")){
+                        System.out.println("Lost connection to Mock Server. Saving queries as log files for later transfer..");
+                    } else {
+                        System.out.println(e);
+                    }
                 }
             }
         } catch (Exception e) {
