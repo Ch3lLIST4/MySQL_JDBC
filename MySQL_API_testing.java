@@ -9,6 +9,8 @@ package mysql_api_testing;
 
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -65,6 +67,10 @@ public class MySQL_API_testing {
     
     public static String API_URL = SCHEMA + "://" + HOSTNAME + "/" + PATH;
             
+    public static int MAX_QUERIES_IN_FILE = 10_000;
+    
+    public static int count_log = 1;
+    
     
     public static String getCurrentTime(){
         // 2020-11-05 15:37:00.884583
@@ -501,13 +507,14 @@ public class MySQL_API_testing {
     
     
     public static void initMenu(String ip_address, String port_number, 
-            String databaseName, String username, String password) {
+            String databaseName, String username, String password, String log_path) {
         System.out.println("====================");
         System.out.println("ip_address = " + ip_address);
         System.out.println("port_number = " + port_number);
         System.out.println("databaseName = " + databaseName);
         System.out.println("username = " + username);
         System.out.println("password = " + password);
+        System.out.println("log_path = " + log_path);
         System.out.println("====================");
     }
     
@@ -519,9 +526,50 @@ public class MySQL_API_testing {
         System.out.println("3. databaseName");
         System.out.println("4. username");
         System.out.println("5. password");
+        System.out.println("6. log_path");
         System.out.print("Insert the number: ");
     }
     
+    
+    public static void create_log_folder(String folder_path) {
+        File dir = new File(folder_path);
+        boolean checkDirCreated = dir.mkdir();
+        if(checkDirCreated){
+            System.out.println("Directory created successfully : " + folder_path);
+        }
+    }
+    
+    
+    public static String create_log_file(String folder_path, String databaseName) {
+        long file_index = 0;
+        String file_name = new String();
+        try {
+            while(true) {
+                file_name = folder_path + databaseName + "_" + file_index + ".txt";
+
+                File fn = new File(file_name);
+                if (fn.createNewFile()) {
+                    System.out.println("File created: " + file_name);
+                    break;
+                } else {
+                    System.out.println("File " + file_name + " already exists.");
+                    file_index++;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return file_name;
+    }
+    
+    
+    public static void write_to_file(JSONObject log_obj, FileWriter writer, int count) {
+        try {
+            writer.write(count + " | " + obj_main.toString() + "\n");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
     
     public static void main(String[] args) {
         // TODO code application logic here
@@ -530,13 +578,14 @@ public class MySQL_API_testing {
         String databaseName = "sampledb";
         String username = "root";
         String password = "123456";
+        String log_path = ".\\tmp\\";
         
         try {
             Scanner sc = new Scanner(System.in);
             
             //Load properties file - Not yet
             
-            initMenu(ip_address, port_number, databaseName, username, password);
+            initMenu(ip_address, port_number, databaseName, username, password, log_path);
             
             System.out.print("Do you want to make any change? (Y/N) : ");
             String key_inputs = sc.nextLine().toUpperCase().trim();
@@ -588,13 +637,23 @@ public class MySQL_API_testing {
                             password = "123456";
                         }
                         break;
+                    case '6':
+                        //Enter log path
+                        System.out.println("\nEnter Log Path (blank for .\\\\tmp\\\\): ");
+                        log_path = new String(sc.nextLine());
+                        if (log_path.equals("")) {
+                            log_path = ".\\tmp\\";
+                        }
                 }
                 
                 System.out.println("Successfully updated the component!\n");
-                initMenu(ip_address, port_number, databaseName, username, password);
+                initMenu(ip_address, port_number, databaseName, username, password, log_path);
                 System.out.print("Do you still want to make changes ? (Y/N):");
                 key_inputs = sc.nextLine().toUpperCase().trim();
             }
+            
+            // init log_file name
+            String file_name = log_path + databaseName + "_" + 0 + ".txt";
             
             // monitor
             
@@ -747,12 +806,19 @@ public class MySQL_API_testing {
                         onGeneralLog(conn);
                         onLogOutput(conn);
                     } catch (Exception ignore) {
-//                        System.out.println(ignore);
                     }
                     TimeUnit.SECONDS.sleep(RECONNECTION_TIME_OUT);
                 } catch (Exception e) {
                     if (response.toString().equals("")){
                         System.out.println("Lost connection to Mock Server. Saving queries as log files for later transfer..");
+                        
+                        // Write log to file
+                        
+                        // create log folder if not existed
+                        create_log_folder(log_path);
+                        
+                        
+
                     } else {
                         System.out.println(e);
                     }
