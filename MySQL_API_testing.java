@@ -10,6 +10,7 @@ package mysql_api_testing;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -34,13 +35,14 @@ import java.time.ZoneId;
 
 /**
  *
- * @author ASUS
+ * @author ch3l
  */
 
 
 public class MySQL_API_testing {
 
     
+    // init global vars
     public static final String ANSI_RESET = "\u001B[0m";
     public static final String ANSI_RED = "\u001B[31m";
     public static final String ANSI_BLUE = "\u001B[34m";
@@ -69,7 +71,7 @@ public class MySQL_API_testing {
             
     public static int MAX_QUERIES_IN_FILE = 10_000;
     
-    public static int count_log = 1;
+    public static String lastest_file_name = new String();
     
     
     public static String getCurrentTime(){
@@ -540,6 +542,19 @@ public class MySQL_API_testing {
     }
     
     
+    public static int count_lines_in_file(String file_name) {
+        int lines = 0;
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(file_name));
+            while (reader.readLine() != null) lines++;
+            reader.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return lines;
+    }
+    
+    
     public static String create_log_file(String folder_path, String databaseName) {
         long file_index = 0;
         String file_name = new String();
@@ -563,13 +578,19 @@ public class MySQL_API_testing {
     }
     
     
-    public static void write_to_file(JSONObject log_obj, FileWriter writer, int count) {
+    public static void write_to_file(String file_name, JSONObject log_obj) {
+        int count = count_lines_in_file(file_name) + 1;
         try {
+            FileWriter writer = new FileWriter(file_name, true);
+            
             writer.write(count + " | " + obj_main.toString() + "\n");
+            
+            writer.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+    
     
     public static void main(String[] args) {
         // TODO code application logic here
@@ -651,9 +672,6 @@ public class MySQL_API_testing {
                 System.out.print("Do you still want to make changes ? (Y/N):");
                 key_inputs = sc.nextLine().toUpperCase().trim();
             }
-            
-            // init log_file name
-            String file_name = log_path + databaseName + "_" + 0 + ".txt";
             
             // monitor
             
@@ -812,13 +830,20 @@ public class MySQL_API_testing {
                     if (response.toString().equals("")){
                         System.out.println("Lost connection to Mock Server. Saving queries as log files for later transfer..");
                         
-                        // Write log to file
+                        // Logging queries
                         
                         // create log folder if not existed
                         create_log_folder(log_path);
                         
+                        // if exceeds log size -> create new log file
+                        if (lastest_file_name.isEmpty() || count_lines_in_file(lastest_file_name) >= MAX_QUERIES_IN_FILE) {
+                            String file_name = create_log_file(log_path, databaseName);
+                            lastest_file_name = file_name;
+                        }             
                         
-
+                        // write log to file
+                        write_to_file(lastest_file_name, obj_main);
+                        
                     } else {
                         System.out.println(e);
                     }
