@@ -79,6 +79,8 @@ public class MySQL_API_testing {
     
     public static int RESENDING_DATA_TIMEOUT = 1;
     
+    public static String DATABASE_NAME = "MYSQL";
+    
     
     public static String getCurrentTime(){
         // 2020-11-05 15:37:00.884583
@@ -89,14 +91,14 @@ public class MySQL_API_testing {
     
     
     public static Connection getConnection(String ip_address, String port_number, 
-            String databaseName, String username, String password) throws Exception {
+            String username, String password) throws Exception {
         Connection conn = null;
         
         //1. Load Driver
 //            Class.forName("com.mysql.jdbc.Driver");
         Class.forName("com.mysql.cj.jdbc.Driver");
         //2. Create String
-        String url = String.format("jdbc:mysql://%s:%s/%s", ip_address, port_number, databaseName);
+        String url = String.format("jdbc:mysql://%s:%s", ip_address, port_number);
         //3. Create Properties
         java.util.Properties connProperties = new java.util.Properties();
         connProperties.put(DATABASE_USER, username);
@@ -515,11 +517,10 @@ public class MySQL_API_testing {
     
     
     public static void initMenu(String ip_address, String port_number, 
-            String databaseName, String username, String password, String log_path) {
+            String username, String password, String log_path) {
         System.out.println("====================");
         System.out.println("ip_address = " + ip_address);
         System.out.println("port_number = " + port_number);
-        System.out.println("databaseName = " + databaseName);
         System.out.println("username = " + username);
         System.out.println("password = " + password);
         System.out.println("log_path = " + log_path);
@@ -531,10 +532,9 @@ public class MySQL_API_testing {
         System.out.println("\nWhich one do you want to change ?");
         System.out.println("1. ip_address");
         System.out.println("2. port_number");
-        System.out.println("3. databaseName");
-        System.out.println("4. username");
-        System.out.println("5. password");
-        System.out.println("6. log_path");
+        System.out.println("3. username");
+        System.out.println("4. password");
+        System.out.println("5. log_path");
         System.out.print("Insert the number: ");
     }
     
@@ -631,7 +631,6 @@ public class MySQL_API_testing {
         // TODO code application logic here
         String ip_address = "localhost";
         String port_number = "3306";
-        String databaseName = "sampledb";
         String username = "root";
         String password = "123456";
         String log_path = ".\\tmp\\";
@@ -641,7 +640,7 @@ public class MySQL_API_testing {
             
             //Load properties file - Not yet
             
-            initMenu(ip_address, port_number, databaseName, username, password, log_path);
+            initMenu(ip_address, port_number, username, password, log_path);
             
             System.out.print("Do you want to make any change? (Y/N) : ");
             String key_inputs = sc.nextLine().toUpperCase().trim();
@@ -670,14 +669,6 @@ public class MySQL_API_testing {
                         }
                         break;
                     case '3':
-                        //Enter databaseName
-                        System.out.print("\nEnter Database Name (blank for \'sampledb\'): ");
-                        databaseName = new String(sc.nextLine());
-                        if (databaseName.equals("")) {
-                            databaseName = "sampledb";
-                        }
-                        break;
-                    case '4':
                         //Enter username
                         System.out.print("\nEnter Username (blank for \'root\'): ");
                         username = new String(sc.nextLine());
@@ -685,7 +676,7 @@ public class MySQL_API_testing {
                             username = "root";
                         }
                         break;
-                    case '5':
+                    case '4':
                         //Enter password
                         System.out.print("\nEnter Password (blank for \'123456\'): ");
                         password = new String(sc.nextLine());
@@ -693,7 +684,7 @@ public class MySQL_API_testing {
                             password = "123456";
                         }
                         break;
-                    case '6':
+                    case '5':
                         //Enter log path
                         System.out.println("\nEnter Log Path (blank for .\\\\tmp\\\\): ");
                         log_path = new String(sc.nextLine());
@@ -703,7 +694,7 @@ public class MySQL_API_testing {
                 }
                 
                 System.out.println("Successfully updated the component!\n");
-                initMenu(ip_address, port_number, databaseName, username, password, log_path);
+                initMenu(ip_address, port_number, username, password, log_path);
                 System.out.print("Do you still want to make changes ? (Y/N):");
                 key_inputs = sc.nextLine().toUpperCase().trim();
             }
@@ -713,7 +704,7 @@ public class MySQL_API_testing {
             //connect to the Database
             Connection conn = null;
             try {
-                conn = getConnection(ip_address, port_number, databaseName, username, password);
+                conn = getConnection(ip_address, port_number, username, password);
             } catch (Exception e) {
                 System.out.println("Could not connect to the database. Please re-check url");
                 System.exit(0);
@@ -801,7 +792,7 @@ public class MySQL_API_testing {
                     while(check_mock_connection()) {
                         
                         // đọc đi từ 0 lên -> nếu có file -> gửi dữ liệu tới hết
-                        String file_name = log_path + databaseName + "_" + last_sent_file_index + ".txt";
+                        String file_name = log_path + DATABASE_NAME + "_" + last_sent_file_index + ".txt";
                         
                         if (check_file_exised(file_name)) {
                             
@@ -918,7 +909,7 @@ public class MySQL_API_testing {
                     }
                     System.out.println("Lost connection to DB. Trying to reconnect..");
                     try {
-                        conn = getConnection(ip_address, port_number, databaseName, username, password);
+                        conn = getConnection(ip_address, port_number, username, password);
                         onGeneralLog(conn);
                         onLogOutput(conn);
                     } catch (Exception ignore) {
@@ -935,7 +926,7 @@ public class MySQL_API_testing {
                         
                         // if exceeds log size -> create new log file
                         if (lastest_file_name.isEmpty() || count_lines_in_file(lastest_file_name) >= MAX_QUERIES_IN_FILE) {
-                            String file_name = create_log_file(log_path, databaseName);
+                            String file_name = create_log_file(log_path, DATABASE_NAME);
                             lastest_file_name = file_name;
                         }             
                         
