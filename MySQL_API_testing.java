@@ -10,6 +10,7 @@ package mysql_api_testing;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
@@ -63,8 +64,8 @@ public class MySQL_API_testing {
     
 //    https://ff855c5b-7d87-4035-a588-d444d913a96d.mock.pstmn.io/data
     public static String SCHEMA = "https";
-//    public static String HOSTNAME = "ff855c5b-7d87-4035-a588-d444d913a96d.mock.pstmn.io";
-    public static String HOSTNAME = "ff855c5b-7d87-4035-a588-d444d913a96dWRONG.mock.pstmn.io";
+    public static String HOSTNAME = "ff855c5b-7d87-4035-a588-d444d913a96d.mock.pstmn.io";
+//    public static String HOSTNAME = "ff855c5b-7d87-4035-a588-d444d913a96dWRONG.mock.pstmn.io";
     public static String PATH = "data";
     
     public static String API_URL = SCHEMA + "://" + HOSTNAME + "/" + PATH;
@@ -72,6 +73,11 @@ public class MySQL_API_testing {
     public static int MAX_QUERIES_IN_FILE = 10_000;
     
     public static String lastest_file_name = new String();
+    
+    public static int last_sent_file_index = 0;
+    public static int last_sent_line_index = 0;
+    
+    public static int RESENDING_DATA_TIMEOUT = 1;
     
     
     public static String getCurrentTime(){
@@ -592,6 +598,35 @@ public class MySQL_API_testing {
     }
     
     
+    public static boolean check_file_exised(String file_name) {
+        File f = new File(file_name);
+        if(f.exists() && !f.isDirectory()) { 
+            return true;
+        }
+        return false;
+    }
+
+    
+    public static void skipLines(Scanner s,int lineNum){
+        for(int i = 0; i < lineNum;i++){
+            if(s.hasNextLine())s.nextLine();
+        }
+    }
+    
+    
+    public static boolean check_mock_connection() {
+        try {
+            URL url = new URL (API_URL);
+            HttpURLConnection con = (HttpURLConnection)url.openConnection();
+            con.getInputStream();
+            
+            return true;
+        } catch (Exception ignore){
+            return false;
+        }
+    }
+    
+    
     public static void main(String[] args) {
         // TODO code application logic here
         String ip_address = "localhost";
@@ -761,6 +796,69 @@ public class MySQL_API_testing {
             StringBuilder response = new StringBuilder();
             while(true) {
                 try {
+                    
+                    // 3.0 check available logs -> send them logs
+                    while(check_mock_connection()) {
+                        
+                        // đọc đi từ 0 lên -> nếu có file -> gửi dữ liệu tới hết
+                        String file_name = log_path + databaseName + "_" + last_sent_file_index + ".txt";
+                        
+                        if (check_file_exised(file_name)) {
+                            
+                            // gửi dữ liệu lên server theo từng hàng
+                            FileInputStream fis = new FileInputStream(file_name);       
+                            sc = new Scanner(fis); 
+                            skipLines(sc, last_sent_line_index);
+                            while (sc.hasNextLine()) {
+                                
+                                // extract dữ liệu json bằng regex
+                                String line = sc.nextLine();
+                                
+                                String[] line_parts = line.split("\\s[|]\\s");
+                                
+                                String json_data_str = line_parts[1].trim();
+                                
+                                // send dữ liệu json lên server
+                                JSONObject json_log_obj = new JSONObject(json_data_str);
+                                
+                                // sending mock data
+                                URL url = new URL (API_URL);
+                                HttpURLConnection con = (HttpURLConnection)url.openConnection();
+                                con.setRequestMethod("POST");
+                                con.setRequestProperty("Content-Type", "application/json; utf-8");
+                                con.setRequestProperty("Accept", "application/json");
+                                con.setDoOutput(true);
+
+                                String jsonInputString = json_log_obj.toString(4);
+
+                                // Create the Request Body
+                                try(OutputStream os = con.getOutputStream()) {
+                                    byte[] input = jsonInputString.getBytes("utf-8");
+                                    os.write(input, 0, input.length);			
+                                }
+                                // Read the Response from Input Stream
+                                try(BufferedReader br = new BufferedReader(
+                                    new InputStreamReader(con.getInputStream(), "utf-8"))) {
+                                        String responseLine = null;
+                                        while ((responseLine = br.readLine()) != null) {
+                                            response.append(responseLine.trim());
+                                        }
+                                    System.out.println(response.toString());
+                                    response = new StringBuilder();
+                                }
+                                
+                                TimeUnit.SECONDS.sleep(RESENDING_DATA_TIMEOUT);
+                            }
+                            
+                            last_sent_line_index = 0;
+                            last_sent_file_index++;
+                            
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                    
                     response = new StringBuilder();
                     
                     //3.1. monitor Log Queries
