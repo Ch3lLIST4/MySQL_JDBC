@@ -11,8 +11,11 @@ package mysql_api_testing;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -32,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Properties;
 
 
 /**
@@ -289,13 +293,23 @@ public class MySQL_API_testing {
     }
     
     
-    public static String monitorLogTable(Connection conn, String last_exec_time/*, int count[]*/) throws Exception {
+    public static String monitorLogTable(Connection conn, String last_exec_time/*, int count[]*/,String monitor_mode) throws Exception {
         // LAST_EXEC_TIME temp var for retrieving most current exec time 
         String LAST_EXEC_TIME = new String();
-        
+            
             String sql = String.format("SELECT * FROM mysqL.general_log WHERE event_time > '%s' ", last_exec_time)
                     + "AND NOT argument LIKE 'SELECT * FROM mysqL.general_log WHERE event_time > %' "
                     + "AND NOT argument LIKE 'SHOW GLOBAL STATUS WHERE Variable_name REGEXP %'";
+            
+            if (monitor_mode.equals("only_alter")) {
+                sql = "SELECT * FROM mysqL.general_log WHERE"
+                        + " (LOWER(convert(Binary argument using latin1)) like LOWER('insert%')"
+                        + " or LOWER(convert(Binary argument using latin1)) like LOWER('delete%')"
+                        + " or LOWER(convert(Binary argument using latin1)) like LOWER('update%')"
+                        + " or LOWER(convert(Binary argument using latin1)) like LOWER('alter%')"
+                        + " or LOWER(convert(Binary argument using latin1)) like LOWER('truncate%'))"
+                        + String.format(" and event_time > '%s'", last_exec_time);
+            }
             
             Statement statement = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             ResultSet result = statement.executeQuery(sql);
@@ -517,13 +531,14 @@ public class MySQL_API_testing {
     
     
     public static void initMenu(String ip_address, String port_number, 
-            String username, String password, String log_path) {
+            String username, String password, String log_path, String monitor_mode) {
         System.out.println("====================");
         System.out.println("ip_address = " + ip_address);
         System.out.println("port_number = " + port_number);
         System.out.println("username = " + username);
         System.out.println("password = " + password);
         System.out.println("log_path = " + log_path);
+        System.out.println("monitor_mode = " + monitor_mode);
         System.out.println("====================");
     }
     
@@ -535,6 +550,7 @@ public class MySQL_API_testing {
         System.out.println("3. username");
         System.out.println("4. password");
         System.out.println("5. log_path");
+        System.out.println("6. monitor_mode");
         System.out.print("Insert the number: ");
     }
     
@@ -627,6 +643,75 @@ public class MySQL_API_testing {
     }
     
     
+    public static void prettyPrintJSON(JSONObject obj_main) {
+        try {
+            System.out.println("");
+            System.out.println(ANSI_RED + getCurrentTime() + ANSI_RESET);
+            System.out.println(obj_main.toString(4));
+            System.out.println("");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    
+    public static void sendMockData(JSONObject obj_main, StringBuilder response) throws Exception{
+        URL url = new URL (API_URL);
+        HttpURLConnection con = (HttpURLConnection)url.openConnection();
+        con.setRequestMethod("POST");
+        con.setRequestProperty("Content-Type", "application/json; utf-8");
+        con.setRequestProperty("Accept", "application/json");
+        con.setDoOutput(true);
+
+        String jsonInputString = obj_main.toString(4);
+
+        // Create the Request Body
+        try(OutputStream os = con.getOutputStream()) {
+            byte[] input = jsonInputString.getBytes("utf-8");
+            os.write(input, 0, input.length);			
+        }
+        // Read the Response from Input Stream
+        try(BufferedReader br = new BufferedReader(
+            new InputStreamReader(con.getInputStream(), "utf-8"))) {
+                String responseLine = null;
+                while ((responseLine = br.readLine()) != null) {
+                    response.append(responseLine.trim());
+                }
+            System.out.println(response.toString());
+        }
+    }
+    
+
+    public static void writePropertiesFile(String ip_address, String port_number, 
+            String username, String password, String log_path, String monitor_mode) {
+        try {
+            Properties properties = new Properties();
+            properties.setProperty("ip_address", ip_address);
+            properties.setProperty("port_number", port_number);
+            properties.setProperty("username", username);
+            properties.setProperty("password", password);
+            properties.setProperty("log_path", log_path);
+            properties.setProperty("monitor_mode", monitor_mode);
+
+            OutputStream output  = new FileOutputStream(log_path + "info.properties");
+            properties.store(output , "Info Properties");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    
+    public static Properties loadPropertiesFile(String log_path) throws Exception {
+        Properties prop = new Properties();
+
+        InputStream input = new FileInputStream(log_path + "info.properties");          
+
+        prop.load(input);
+        
+        return prop;
+    }
+    
+    
     public static void main(String[] args) {
         // TODO code application logic here
         String ip_address = "localhost";
@@ -634,13 +719,30 @@ public class MySQL_API_testing {
         String username = "root";
         String password = "123456";
         String log_path = ".\\tmp\\";
+        String monitor_mode = "only_alter";
         
         try {
             Scanner sc = new Scanner(System.in);
             
-            //Load properties file - Not yet
+            //Load properties file
+            try {
+                Properties prop = loadPropertiesFile(log_path);
+
+                ip_address = prop.getProperty("ip_address");
+                port_number = prop.getProperty("port_number");
+                username = prop.getProperty("username");
+                password = prop.getProperty("password");
+                log_path = prop.getProperty("log_path");
+                monitor_mode = prop.getProperty("monitor_mode");
+
+                System.out.println("Properties file loaded!");
+            } catch (FileNotFoundException e) {
+                System.out.println("No properties file found! Using default properties..");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             
-            initMenu(ip_address, port_number, username, password, log_path);
+            initMenu(ip_address, port_number, username, password, log_path, monitor_mode);
             
             System.out.print("Do you want to make any change? (Y/N) : ");
             String key_inputs = sc.nextLine().toUpperCase().trim();
@@ -691,13 +793,23 @@ public class MySQL_API_testing {
                         if (log_path.equals("")) {
                             log_path = ".\\tmp\\";
                         }
+                    case '6':
+                        //Enter monitor mode
+                        System.out.print("\nEnter Monitor Mode (blank for \'only_alter\'): ");
+                        monitor_mode = new String(sc.nextLine());
+                        if (monitor_mode.equals("")) {
+                            monitor_mode = "only_alter";  
+                        }
                 }
                 
                 System.out.println("Successfully updated the component!\n");
-                initMenu(ip_address, port_number, username, password, log_path);
+                initMenu(ip_address, port_number, username, password, log_path, monitor_mode);
                 System.out.print("Do you still want to make changes ? (Y/N):");
                 key_inputs = sc.nextLine().toUpperCase().trim();
             }
+            
+            // save user properties
+            writePropertiesFile(ip_address, port_number, username, password, log_path, monitor_mode);
             
             // monitor
             
@@ -813,30 +925,9 @@ public class MySQL_API_testing {
                                 JSONObject json_log_obj = new JSONObject(json_data_str);
                                 
                                 // sending mock data
-                                URL url = new URL (API_URL);
-                                HttpURLConnection con = (HttpURLConnection)url.openConnection();
-                                con.setRequestMethod("POST");
-                                con.setRequestProperty("Content-Type", "application/json; utf-8");
-                                con.setRequestProperty("Accept", "application/json");
-                                con.setDoOutput(true);
-
-                                String jsonInputString = json_log_obj.toString(4);
-
-                                // Create the Request Body
-                                try(OutputStream os = con.getOutputStream()) {
-                                    byte[] input = jsonInputString.getBytes("utf-8");
-                                    os.write(input, 0, input.length);			
-                                }
-                                // Read the Response from Input Stream
-                                try(BufferedReader br = new BufferedReader(
-                                    new InputStreamReader(con.getInputStream(), "utf-8"))) {
-                                        String responseLine = null;
-                                        while ((responseLine = br.readLine()) != null) {
-                                            response.append(responseLine.trim());
-                                        }
-                                    System.out.println(response.toString());
-                                    response = new StringBuilder();
-                                }
+                                prettyPrintJSON(json_log_obj);
+                                sendMockData(json_log_obj, response);
+                                response = new StringBuilder();
                                 
                                 TimeUnit.SECONDS.sleep(RESENDING_DATA_TIMEOUT);
                             }
@@ -850,10 +941,8 @@ public class MySQL_API_testing {
                         }
                     }
                     
-                    response = new StringBuilder();
-                    
                     //3.1. monitor Log Queries
-                    last_exec_time = monitorLogTable(conn, last_exec_time/*, count*/);
+                    last_exec_time = monitorLogTable(conn, last_exec_time/*, count*/, monitor_mode);
 //                    System.out.println("Executed");
     //                System.out.println(count[0]);
                     
@@ -871,36 +960,10 @@ public class MySQL_API_testing {
                     
                     Needed_Values = searchShowStatus(conn, Needed_Values);
                     
-                    //3.3 pretty print JSON main obj
-                    System.out.println("");
-                    System.out.println(ANSI_RED + getCurrentTime() + ANSI_RESET);
-                    System.out.println(obj_main.toString(4));
-                    System.out.println("");
-                    
-                    //3.4 send mock data
-                    URL url = new URL (API_URL);
-                    HttpURLConnection con = (HttpURLConnection)url.openConnection();
-                    con.setRequestMethod("POST");
-                    con.setRequestProperty("Content-Type", "application/json; utf-8");
-                    con.setRequestProperty("Accept", "application/json");
-                    con.setDoOutput(true);
-                    
-                    String jsonInputString = obj_main.toString(4);
-                    
-                    // Create the Request Body
-                    try(OutputStream os = con.getOutputStream()) {
-                        byte[] input = jsonInputString.getBytes("utf-8");
-                        os.write(input, 0, input.length);			
-                    }
-                    // Read the Response from Input Stream
-                    try(BufferedReader br = new BufferedReader(
-                        new InputStreamReader(con.getInputStream(), "utf-8"))) {
-                            String responseLine = null;
-                            while ((responseLine = br.readLine()) != null) {
-                                response.append(responseLine.trim());
-                            }
-                        System.out.println(response.toString());
-                    }
+                    // 3.3 send mock data
+                    prettyPrintJSON(obj_main);
+                    sendMockData(obj_main, response);
+                    response = new StringBuilder();
                     
                     TimeUnit.SECONDS.sleep(TIME_OUT);
                 } catch (SQLException e) {
