@@ -808,6 +808,9 @@ public class MySQL_API_testing {
                 key_inputs = sc.nextLine().toUpperCase().trim();
             }
             
+            // create log folder if not existed
+            create_log_folder(log_path);
+            
             // save user properties
             writePropertiesFile(ip_address, port_number, username, password, log_path, monitor_mode);
             
