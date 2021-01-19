@@ -793,6 +793,7 @@ public class MySQL_API_testing {
                         if (log_path.equals("")) {
                             log_path = ".\\tmp\\";
                         }
+                        break;
                     case '6':
                         //Enter monitor mode
                         System.out.print("\nEnter Monitor Mode (blank for \'only_alter\'): ");
@@ -800,6 +801,7 @@ public class MySQL_API_testing {
                         if (monitor_mode.equals("")) {
                             monitor_mode = "only_alter";  
                         }
+                        break;
                 }
                 
                 System.out.println("Successfully updated the component!\n");
@@ -821,6 +823,7 @@ public class MySQL_API_testing {
             try {
                 conn = getConnection(ip_address, port_number, username, password);
             } catch (Exception e) {
+                e.printStackTrace();
                 System.out.println("Could not connect to the database. Please re-check url");
                 System.exit(0);
             }
