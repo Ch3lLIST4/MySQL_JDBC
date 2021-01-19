@@ -788,7 +788,7 @@ public class MySQL_API_testing {
                         break;
                     case '5':
                         //Enter log path
-                        System.out.println("\nEnter Log Path (blank for .\\\\tmp\\\\): ");
+                        System.out.print("\nEnter Log Path (blank for .\\\\tmp\\\\): ");
                         log_path = new String(sc.nextLine());
                         if (log_path.equals("")) {
                             log_path = ".\\tmp\\";
@@ -823,7 +823,6 @@ public class MySQL_API_testing {
             try {
                 conn = getConnection(ip_address, port_number, username, password);
             } catch (Exception e) {
-                e.printStackTrace();
                 System.out.println("Could not connect to the database. Please re-check url");
                 System.exit(0);
             }
